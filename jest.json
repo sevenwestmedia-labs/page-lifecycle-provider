@@ -1,0 +1,23 @@
+{
+    "testEnvironment": "node",
+    "transform": {
+        ".tsx?": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
+    "testRegex": "\\.(spec|test)\\.tsx?$",
+    "moduleFileExtensions": [
+        "ts",
+        "tsx",
+        "js",
+        "json"
+    ],
+    "testPathIgnorePatterns": [
+        "/node_modules/",
+        "dist"
+    ],
+    "verbose": false,
+    "collectCoverageFrom": [
+        "**/*.{ts,tsx}",
+        "!**/*.d.ts",
+        "!**/node_modules/**"
+    ]
+}
