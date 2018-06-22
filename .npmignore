@@ -1,0 +1,7 @@
+src/
+tests/
+.vscode
+.prettierignore
+tsconfig.json
+tsconfig.build.json
+jest.json
