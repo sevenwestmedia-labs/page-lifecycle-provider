@@ -2,7 +2,8 @@
   "name": "page-lifecycle-provider",
   "version": "0.1.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "yarn jest -c jest.json"
@@ -29,7 +30,7 @@
     "enzyme": "^3.3.0",
     "enzyme-adapter-react-16": "^1.1.1",
     "jest": "^23.1.0",
-    "prettier": "^1.7.4",
+    "prettier": "^1.13.5",
     "react": "^16.4.1",
     "react-dom": "^16.4.1",
     "react-router-dom": "^4.2.2",

@@ -1,4 +1,7 @@
 {
+  "exclude": [
+    "./dist/**"
+  ],
   "compilerOptions": {
     "noEmit": true,
     /* Basic Options */

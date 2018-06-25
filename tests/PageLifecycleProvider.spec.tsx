@@ -12,11 +12,11 @@ import { mount, configure } from 'enzyme'
 import Adapter from 'enzyme-adapter-react-16'
 import * as H from 'history'
 import { PromiseCompletionSource } from './promise-completion-source'
-import Page from '../src/Page'
+import { Page } from '../src/Page'
 import { withPageLifecycleEvents } from '../src/withPageLifecycle'
-import { ComponentWithLifecycle } from '../src/ComponentWithLifeCycle'
 import { PageEvent, PageLifecycleProvider } from '../src/PageLifecycleProvider'
 import { PageAdditionalProps } from '../src/PageAdditionalProps'
+import { PageLifecycle } from '../src/PageLifecycle'
 
 configure({ adapter: new Adapter() })
 
@@ -55,8 +55,11 @@ const createTestComponents = () => {
 
     const FakeLazyLoad = withPageLifecycleEvents(
         // tslint:disable-next-line:max-classes-per-file
-        class extends ComponentWithLifecycle<{ path: string }, { loaded: boolean }> {
+        class extends React.Component<{ path: string }, { loaded: boolean }> {
             state = { loaded: false }
+            context!: {
+                pageLifecycle: PageLifecycle
+            }
 
             componentDidMount() {
                 this.context.pageLifecycle.beginLoadingData()

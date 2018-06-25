@@ -1,18 +1,15 @@
 import * as React from 'react'
 import * as PropTypes from 'prop-types'
 import { PageLifecycle } from './PageLifecycle'
-import {
-    PageLifecycleProps,
-    withPageLifecycleProps,
-} from './withPageLifecycle'
-import { Logger } from './util/log';
+import { PageLifecycleProps, withPageLifecycleProps } from './withPageLifecycle'
+import { Logger } from './util/log'
 
 export interface Props {
     page: React.ReactElement<any> | ((pageProps: PageLifecycleProps) => React.ReactElement<any>)
     pageProperties?: object
 }
 
-export default withPageLifecycleProps(
+export const Page = withPageLifecycleProps(
     class Page extends React.PureComponent<Props & PageLifecycleProps, {}> {
         static displayName = `Page`
 

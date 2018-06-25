@@ -9,8 +9,6 @@ export interface ErrorObject extends LogObject {
 }
 
 export interface Logger {
-    trace(msg: string | LogObject): void
-    trace(obj: LogObject, msg: string): void
     debug(msg: string | LogObject): void
     debug(obj: LogObject, msg: string): void
     info(msg: string | LogObject): void
