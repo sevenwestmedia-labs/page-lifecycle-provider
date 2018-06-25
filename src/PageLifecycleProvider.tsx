@@ -30,7 +30,7 @@ export interface PageLoadComplete extends PageLifecycleEvent<Properties> {
 
 export type PageEvent = PageLoadStarted | PageLoadFailed | PageLoadComplete
 
-export interface PageProps {
+export interface PageLifecycleProviderRenderProps {
     /** Increments loading count */
     beginLoadingData: () => void
     /** Decrements loading count */
@@ -39,7 +39,9 @@ export interface PageProps {
 }
 
 export interface PageLifecycleProviderProps extends RouteComponentProps<{}> {
-    render: React.ReactElement<any> | ((pageProps: PageProps) => React.ReactElement<any>)
+    render:
+        | React.ReactElement<any>
+        | ((pageProps: PageLifecycleProviderRenderProps) => React.ReactElement<any>)
     onEvent: (event: PageEvent) => void
     /** To enable trace logging you also need to pass a logger */
     enableTraceLogging?: boolean

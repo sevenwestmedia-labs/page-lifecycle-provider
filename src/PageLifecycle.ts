@@ -1,5 +1,5 @@
 import * as H from 'history'
-import { PageProps } from './PageLifecycleProvider'
+import { PageLifecycleProviderRenderProps } from './PageLifecycleProvider'
 import {
     PageLifecycleProps,
     StateChangeCallback,
@@ -9,7 +9,7 @@ import {
 } from './withPageLifecycle'
 import { Logger } from './util/log'
 
-export class PageLifecycle implements PageLifecycleProps, PageProps {
+export class PageLifecycle implements PageLifecycleProps, PageLifecycleProviderRenderProps {
     static displayName = 'PageLifecycle'
 
     /** Adds data to the page */

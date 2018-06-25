@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as PropTypes from 'prop-types'
 import * as H from 'history'
 
-import { PageProps } from './PageLifecycleProvider'
+import { PageLifecycleProviderRenderProps } from './PageLifecycleProvider'
 import { PageLifecycle } from './PageLifecycle'
 import { getDisplayName } from './util/get-display-name'
 
@@ -16,7 +16,7 @@ export type LifecycleState = {
     currentPageState: LoadingStates
     currentPageLocation: H.Location
 }
-export type PageLifecycleProps = LifecycleState & PageProps
+export type PageLifecycleProps = LifecycleState & PageLifecycleProviderRenderProps
 
 export type StateChangeCallback = (state: LifecycleState) => void
 export type RouteChangeCallback = (location: H.Location) => void
