@@ -83,6 +83,3 @@ export interface PageLoadComplete {
     }
 }
 ```
-
-### withPageLifecycleEvents
-Gives access to the page lifecycle events, this way you can register work with the page lifecycle provider which is not directly under the `PageLifecycleProvider` or the `Page`
