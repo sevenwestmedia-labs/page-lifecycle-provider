@@ -1,8 +1,7 @@
 import * as React from 'react'
 import * as PropTypes from 'prop-types'
-import { PageLifecycle } from './PageLifecycle'
+import { PageLifecycle, PageLifecycleContext, ensureContext } from './PageLifecycle'
 import { PageLifecycleProps } from './withPageLifecycle'
-import { Logger } from './util/log'
 
 export interface Props {
     pageProperties?: object
@@ -11,31 +10,22 @@ export interface Props {
 export class PageAdditionalProps extends React.Component<Props, {}> {
     static displayName = 'PageAdditionalProps'
 
-    static contextTypes = {
-        // Seems like context cannot be exported, this is a runtime react thing anyways
-        pageLifecycle: PropTypes.object as any,
-    }
+    static contextType = PageLifecycleContext
 
-    // @ts-ignore
-    context: {
-        pageLifecycle: PageLifecycle
-        logger: Logger
-    }
+    context!: React.ContextType<typeof PageLifecycleContext>
 
     constructor(
         props: Props & PageLifecycleProps,
-        context: {
-            pageLifecycle: PageLifecycle
-            logger: Logger
-        },
+        context: React.ContextType<typeof PageLifecycleContext>,
     ) {
         super(props, context)
 
-        context.pageLifecycle.updatePageProps(this.props.pageProperties || {})
+        ensureContext(context).updatePageProps(this.props.pageProperties || {})
     }
 
-    componentWillReceiveProps(nextProps: Props & PageLifecycleProps) {
-        this.context.pageLifecycle.updatePageProps(nextProps.pageProperties || {})
+    componentDidUpdate() {
+        ensureContext(this.context).updatePageProps(this.props.pageProperties || {})
+        return true
     }
 
     render() {
