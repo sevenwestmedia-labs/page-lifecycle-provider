@@ -1,10 +1,9 @@
 import * as React from 'react'
-import * as PropTypes from 'prop-types'
 import * as H from 'history'
 import { withRouter, RouteComponentProps } from 'react-router'
-import { PageLifecycle } from './PageLifecycle'
+import { PageLifecycle, PageLifecycleContext } from './PageLifecycle'
 import { LoadingStates } from './withPageLifecycle'
-import { Logger } from './util/log'
+import { Logger, consoleLogger } from 'typescript-log'
 
 export interface PageLifecycleEvent<T> {
     type: string
@@ -12,7 +11,7 @@ export interface PageLifecycleEvent<T> {
     originator: string
     payload: T
 }
-export declare type Properties = {
+export declare interface Properties {
     location: H.Location
     [key: string]: any
 }
@@ -43,16 +42,13 @@ export interface PageLifecycleProviderProps extends RouteComponentProps<{}> {
         | React.ReactElement<any>
         | ((pageProps: PageLifecycleProviderRenderProps) => React.ReactElement<any>)
     onEvent: (event: PageEvent) => void
-    /** To enable trace logging you also need to pass a logger */
-    enableTraceLogging?: boolean
     logger?: Logger
 }
 
 class PageLifecycleProvider extends React.Component<PageLifecycleProviderProps, {}> {
     static displayName = 'PageLifecycleProvider'
-
-    static childContextTypes = {
-        pageLifecycle: PropTypes.object,
+    static defaultProps = {
+        logger: consoleLogger('error'),
     }
 
     raiseStartOnRender: boolean = false
@@ -74,8 +70,7 @@ class PageLifecycleProvider extends React.Component<PageLifecycleProviderProps, 
             this.endLoadingData,
             'loading',
             this.props.location,
-            this.props.enableTraceLogging || false,
-            this.props.logger,
+            this.props.logger!,
         )
     }
 
@@ -90,16 +85,13 @@ class PageLifecycleProvider extends React.Component<PageLifecycleProviderProps, 
             currentPageState,
             currentPageLocation: this.props.location,
         }
-        if (this.props.enableTraceLogging && this.props.logger) {
-            this.props.logger.debug(newState, 'State changed')
-        }
+
+        this.props.logger!.debug(newState, 'State changed')
         this.pageLifecycle.pageStateChanged(newState)
     }
 
     raisePageLoadStartEvent = () => {
-        if (this.props.enableTraceLogging && this.props.logger) {
-            this.props.logger.debug({}, 'Rasing start load event')
-        }
+        this.props.logger!.debug({}, 'Rasing start load event')
 
         this.stateChanged()
         this.props.onEvent({
@@ -114,12 +106,10 @@ class PageLifecycleProvider extends React.Component<PageLifecycleProviderProps, 
     }
 
     raisePageLoadCompleteEvent = () => {
-        if (this.props.enableTraceLogging && this.props.logger) {
-            this.props.logger.debug(
-                { currentPageProps: this.currentPageProps },
-                'Raising page load complete event',
-            )
-        }
+        this.props.logger!.debug(
+            { currentPageProps: this.currentPageProps },
+            'Raising page load complete event',
+        )
 
         this.isRouting = false
         this.stateChanged()
@@ -147,12 +137,10 @@ class PageLifecycleProvider extends React.Component<PageLifecycleProviderProps, 
 
         this.currentPageProps = { ...this.currentPageProps, ...props }
 
-        if (this.props.enableTraceLogging && this.props.logger) {
-            this.props.logger.debug(
-                { currentPageProps: this.currentPageProps, existingProps, props },
-                'Updating page props',
-            )
-        }
+        this.props.logger!.debug(
+            { currentPageProps: this.currentPageProps, existingProps, props },
+            'Updating page props',
+        )
     }
 
     onPageRender = () => {
@@ -169,16 +157,10 @@ class PageLifecycleProvider extends React.Component<PageLifecycleProviderProps, 
         }
     }
 
-    getChildContext() {
-        return {
-            pageLifecycle: this.pageLifecycle,
-        }
-    }
-
     componentWillReceiveProps(nextProps: PageLifecycleProviderProps) {
         // We only care about pathname, not any of the other location info
         if (this.props.location.pathname !== nextProps.location.pathname) {
-            if (this.props.enableTraceLogging && this.props.logger) {
+            if (this.props.logger) {
                 this.props.logger.debug(
                     { oldPath: this.props.location.pathname, newPath: nextProps.location.pathname },
                     'Path changed',
@@ -196,19 +178,12 @@ class PageLifecycleProvider extends React.Component<PageLifecycleProviderProps, 
 
     beginLoadingData = () => {
         this.loadingDataCount++
-        if (this.props.enableTraceLogging && this.props.logger) {
-            this.props.logger.debug(
-                { loadingDataCount: this.loadingDataCount },
-                'Begin loading data',
-            )
-        }
+        this.props.logger!.debug({ loadingDataCount: this.loadingDataCount }, 'Begin loading data')
     }
 
     endLoadingData = () => {
         this.loadingDataCount--
-        if (this.props.enableTraceLogging && this.props.logger) {
-            this.props.logger.debug({ loadingDataCount: this.loadingDataCount }, 'End loading data')
-        }
+        this.props.logger!.debug({ loadingDataCount: this.loadingDataCount }, 'End loading data')
 
         if (this.loadingDataCount === 0) {
             this.raisePageLoadCompleteEvent()
@@ -217,13 +192,22 @@ class PageLifecycleProvider extends React.Component<PageLifecycleProviderProps, 
 
     render() {
         if (typeof this.props.render === 'function') {
-            return this.props.render({
-                beginLoadingData: this.beginLoadingData,
-                endLoadingData: this.endLoadingData,
-                currentPageLocation: this.props.location,
-            })
+            return (
+                <PageLifecycleContext.Provider value={this.pageLifecycle}>
+                    {this.props.render({
+                        beginLoadingData: this.beginLoadingData,
+                        endLoadingData: this.endLoadingData,
+                        currentPageLocation: this.props.location,
+                    })}
+                </PageLifecycleContext.Provider>
+            )
         }
-        return this.props.render
+
+        return (
+            <PageLifecycleContext.Provider value={this.pageLifecycle}>
+                {this.props.render}
+            </PageLifecycleContext.Provider>
+        )
     }
 }
 

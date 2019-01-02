@@ -1,4 +1,5 @@
-import * as H from 'history'
+import React from 'react'
+import H from 'history'
 import { PageLifecycleProviderRenderProps } from './PageLifecycleProvider'
 import {
     PageLifecycleProps,
@@ -7,7 +8,19 @@ import {
     LoadingStates,
     LifecycleState,
 } from './withPageLifecycle'
-import { Logger } from './util/log'
+import { Logger } from 'typescript-log'
+
+export const PageLifecycleContext = React.createContext<PageLifecycle | undefined>(undefined)
+
+export function ensureContext(context: PageLifecycle | undefined): PageLifecycle {
+    if (!context) {
+        throw new Error(
+            'Page lifecycle provider context missing, ensure you have wrapped your application in a PageLifecycleProvider',
+        )
+    }
+
+    return context
+}
 
 export class PageLifecycle implements PageLifecycleProps, PageLifecycleProviderRenderProps {
     static displayName = 'PageLifecycle'
@@ -29,8 +42,7 @@ export class PageLifecycle implements PageLifecycleProps, PageLifecycleProviderR
         endLoadingData: () => void,
         public currentPageState: LoadingStates,
         public currentPageLocation: H.Location,
-        public enableTraceLogging: boolean,
-        public logger?: Logger,
+        public logger: Logger,
     ) {
         this.updatePageProps = updatePageProps
         this.pageRenderComplete = onPageRender

@@ -3,7 +3,7 @@
  */
 
 window.requestAnimationFrame = (callback: any) => {
-    return setTimeout(callback, 0)
+    return setTimeout(callback, 0) as any
 }
 
 import * as React from 'react'
@@ -11,12 +11,11 @@ import { MemoryRouter, Route } from 'react-router-dom'
 import { mount, configure } from 'enzyme'
 import Adapter from 'enzyme-adapter-react-16'
 import * as H from 'history'
-import { PromiseCompletionSource } from './promise-completion-source'
+import { PromiseCompletionSource } from 'promise-completion-source'
 import { Page } from '../src/Page'
-import { withPageLifecycleEvents } from '../src/withPageLifecycle'
 import { PageEvent, PageLifecycleProvider } from '../src/PageLifecycleProvider'
 import { PageAdditionalProps } from '../src/PageAdditionalProps'
-import { PageLifecycle } from '../src/PageLifecycle'
+import { PageLifecycleContext, ensureContext } from '../src/PageLifecycle'
 
 configure({ adapter: new Adapter() })
 
@@ -53,32 +52,30 @@ const createTestComponents = () => {
         }
     }
 
-    const FakeLazyLoad = withPageLifecycleEvents(
-        // tslint:disable-next-line:max-classes-per-file
-        class extends React.Component<{ path: string }, { loaded: boolean }> {
-            state = { loaded: false }
-            context!: {
-                pageLifecycle: PageLifecycle
-            }
+    // tslint:disable-next-line:max-classes-per-file
+    class FakeLazyLoad extends React.Component<{ path: string }, { loaded: boolean }> {
+        state = { loaded: false }
+        static contextType = PageLifecycleContext
+        context!: React.ContextType<typeof PageLifecycleContext>
 
-            componentDidMount() {
-                this.context.pageLifecycle.beginLoadingData()
-                // When we mount, pretend we are starting to load the test page
-                setTimeout(() => {
-                    this.setState(
-                        { loaded: true },
-                        // Only end load data after state change has been applied
-                        // Because this could trigger more loading of data
-                        this.context.pageLifecycle.endLoadingData,
-                    )
-                })
-            }
+        componentDidMount() {
+            ensureContext(this.context).beginLoadingData()
+            // When we mount, pretend we are starting to load the test page
+            setTimeout(() => {
+                this.setState(
+                    { loaded: true },
+                    // Only end load data after state change has been applied
+                    // Because this could trigger more loading of data
+                    ensureContext(this.context).endLoadingData,
+                )
+            })
+        }
 
-            render() {
-                return this.state.loaded ? <TestPage {...this.props} /> : <noscript />
-            }
-        },
-    )
+        render() {
+            return this.state.loaded ? <TestPage {...this.props} /> : <noscript />
+        }
+    }
+
     return {
         promiseCompletionSource,
         FakeLazyLoad,
@@ -159,7 +156,7 @@ describe('PageLifecycleProvider', () => {
 
         testComponents.promiseCompletionSource.resolve({ bar: 'test' })
         await new Promise(resolve => setTimeout(() => resolve()))
-        testComponents.promiseCompletionSource.reset()
+        testComponents.promiseCompletionSource = new PromiseCompletionSource()
 
         history.push('/foo')
 
@@ -287,7 +284,7 @@ describe('PageLifecycleProvider', () => {
 
         testComponents.promiseCompletionSource.resolve({ bar: 'test' })
         await new Promise(resolve => setTimeout(() => resolve()))
-        testComponents.promiseCompletionSource.reset()
+        testComponents.promiseCompletionSource = new PromiseCompletionSource()
 
         history.push('/foo')
 

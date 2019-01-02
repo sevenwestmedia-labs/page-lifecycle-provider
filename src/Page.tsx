@@ -1,8 +1,6 @@
-import * as React from 'react'
-import * as PropTypes from 'prop-types'
-import { PageLifecycle } from './PageLifecycle'
+import React from 'react'
+import { PageLifecycleContext, ensureContext } from './PageLifecycle'
 import { PageLifecycleProps, withPageLifecycleProps } from './withPageLifecycle'
-import { Logger } from './util/log'
 
 export interface Props {
     page: React.ReactElement<any> | ((pageProps: PageLifecycleProps) => React.ReactElement<any>)
@@ -10,42 +8,30 @@ export interface Props {
 }
 
 export const Page = withPageLifecycleProps(
-    class Page extends React.PureComponent<Props & PageLifecycleProps, {}> {
+    // tslint:disable-next-line:no-shadowed-variable
+    class Page extends React.Component<Props & PageLifecycleProps, {}> {
         static displayName = `Page`
 
-        static contextTypes = {
-            // Seems like context cannot be exported, this is a runtime react thing anyways
-            pageLifecycle: PropTypes.object,
-            logger: PropTypes.object,
-        }
+        static contextType = PageLifecycleContext
 
-        context!: {
-            pageLifecycle: PageLifecycle
-            logger: Logger
-        }
+        context!: React.ContextType<typeof PageLifecycleContext>
 
         constructor(
             props: Props & PageLifecycleProps,
-            context: {
-                pageLifecycle: PageLifecycle
-                logger: Logger
-            },
+            context: React.ContextType<typeof PageLifecycleContext>,
         ) {
             super(props, context)
 
-            context.pageLifecycle.updatePageProps(this.props.pageProperties || {})
+            ensureContext(context).updatePageProps(this.props.pageProperties || {})
         }
 
         componentDidMount() {
-            this.context.pageLifecycle.pageRenderComplete()
-        }
-
-        componentWillReceiveProps(nextProps: Props & PageLifecycleProps) {
-            this.context.pageLifecycle.updatePageProps(nextProps.pageProperties || {})
+            ensureContext(this.context).pageRenderComplete()
         }
 
         componentDidUpdate() {
-            this.context.pageLifecycle.pageRenderComplete()
+            ensureContext(this.context).updatePageProps(this.props.pageProperties || {})
+            ensureContext(this.context).pageRenderComplete()
         }
 
         render() {
