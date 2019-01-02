@@ -2871,6 +2871,11 @@ process-nextick-args@~2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/process-nextick-args/-/process-nextick-args-2.0.0.tgz#a37d732f4271b4ab1ad070d35508e8290788ffaa"
 
+promise-completion-source@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/promise-completion-source/-/promise-completion-source-1.0.0.tgz#fc45c4e2439433b38002d0e5e92cfc5260b700a4"
+  integrity sha512-0UCZAOH+AAjkwfAuFP1Ut1eC3KXMydAyT4wJw4Ha0ja7zdg2xVudYFy7YBADmYDXwXxqgEZeGic3xoAh1XeuVw==
+
 promise@^7.1.1:
   version "7.3.1"
   resolved "https://nexus.swmdigital.io/repository/js-combined/promise/-/promise-7.3.1.tgz#064b72602b18f90f29192b8b1bc418ffd1ebd3bf"

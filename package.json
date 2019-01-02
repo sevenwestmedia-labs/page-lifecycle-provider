@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "yarn jest -c jest.json",
-    "lint": "tslint 'src/**/*.ts' --project ./tsconfig.json -e '**/*.d.ts'"
+    "lint": "tslint --project ."
   },
   "author": "Jake Ginnivan",
   "license": "MIT",
@@ -29,6 +29,7 @@
     "enzyme-adapter-react-16": "^1.7.1",
     "jest": "^23.6.0",
     "prettier": "^1.15.3",
+    "promise-completion-source": "^1.0.0",
     "react": "^16.7.0",
     "react-dom": "^16.7.0",
     "react-router-dom": "^4.3.1",

@@ -12,7 +12,7 @@ export type LifecycleComponent<T> =
 
 export type LoadingStates = 'loading' | 'loaded'
 
-export type LifecycleState = {
+export interface LifecycleState {
     currentPageState: LoadingStates
     currentPageLocation: H.Location
 }

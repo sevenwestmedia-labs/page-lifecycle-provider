@@ -1,5 +1,4 @@
 import * as React from 'react'
-import * as PropTypes from 'prop-types'
 import * as H from 'history'
 import { withRouter, RouteComponentProps } from 'react-router'
 import { PageLifecycle, PageLifecycleContext } from './PageLifecycle'
@@ -12,7 +11,7 @@ export interface PageLifecycleEvent<T> {
     originator: string
     payload: T
 }
-export declare type Properties = {
+export declare interface Properties {
     location: H.Location
     [key: string]: any
 }

@@ -8,6 +8,7 @@ export interface Props {
 }
 
 export const Page = withPageLifecycleProps(
+    // tslint:disable-next-line:no-shadowed-variable
     class Page extends React.Component<Props & PageLifecycleProps, {}> {
         static displayName = `Page`
 

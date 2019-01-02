@@ -11,7 +11,7 @@ import { MemoryRouter, Route } from 'react-router-dom'
 import { mount, configure } from 'enzyme'
 import Adapter from 'enzyme-adapter-react-16'
 import * as H from 'history'
-import { PromiseCompletionSource } from './promise-completion-source'
+import { PromiseCompletionSource } from 'promise-completion-source'
 import { Page } from '../src/Page'
 import { PageEvent, PageLifecycleProvider } from '../src/PageLifecycleProvider'
 import { PageAdditionalProps } from '../src/PageAdditionalProps'
@@ -156,7 +156,7 @@ describe('PageLifecycleProvider', () => {
 
         testComponents.promiseCompletionSource.resolve({ bar: 'test' })
         await new Promise(resolve => setTimeout(() => resolve()))
-        testComponents.promiseCompletionSource.reset()
+        testComponents.promiseCompletionSource = new PromiseCompletionSource()
 
         history.push('/foo')
 
@@ -284,7 +284,7 @@ describe('PageLifecycleProvider', () => {
 
         testComponents.promiseCompletionSource.resolve({ bar: 'test' })
         await new Promise(resolve => setTimeout(() => resolve()))
-        testComponents.promiseCompletionSource.reset()
+        testComponents.promiseCompletionSource = new PromiseCompletionSource()
 
         history.push('/foo')
 
