@@ -6,11 +6,12 @@ window.requestAnimationFrame = (callback: any) => {
     return setTimeout(callback, 0) as any
 }
 
-import * as React from 'react'
+import H from 'history'
+import React from 'react'
+import Adapter from 'enzyme-adapter-react-16'
 import { MemoryRouter, Route } from 'react-router-dom'
 import { mount, configure } from 'enzyme'
-import Adapter from 'enzyme-adapter-react-16'
-import * as H from 'history'
+
 import { PromiseCompletionSource } from 'promise-completion-source'
 import { Page } from '../src/Page'
 import { PageEvent, PageLifecycleProvider } from '../src/PageLifecycleProvider'
@@ -25,7 +26,10 @@ interface TestData {
 
 const createTestComponents = () => {
     const promiseCompletionSource = new PromiseCompletionSource<TestData>()
-    class TestPage extends React.Component<{ path: string; extraProps?: object }, {}> {
+    class TestPage extends React.Component<
+        { path: string; extraProps?: object },
+        {}
+    > {
         loadTriggered = false
 
         render() {
@@ -38,11 +42,14 @@ const createTestComponents = () => {
                         if (!this.loadTriggered) {
                             pageProps.beginLoadingData()
                             this.loadTriggered = true
-                            promiseCompletionSource.promise.then(() => pageProps.endLoadingData())
+                            promiseCompletionSource.promise.then(() =>
+                                pageProps.endLoadingData(),
+                            )
                         }
                         return (
                             <div>
-                                Page location: {pageProps.currentPageLocation.pathname}
+                                Page location:{' '}
+                                {pageProps.currentPageLocation.pathname}
                                 Page state: {pageProps.currentPageState}
                             </div>
                         )
@@ -53,7 +60,10 @@ const createTestComponents = () => {
     }
 
     // tslint:disable-next-line:max-classes-per-file
-    class FakeLazyLoad extends React.Component<{ path: string }, { loaded: boolean }> {
+    class FakeLazyLoad extends React.Component<
+        { path: string },
+        { loaded: boolean }
+    > {
         state = { loaded: false }
         static contextType = PageLifecycleContext
         context!: React.ContextType<typeof PageLifecycleContext>
@@ -72,7 +82,11 @@ const createTestComponents = () => {
         }
 
         render() {
-            return this.state.loaded ? <TestPage {...this.props} /> : <noscript />
+            return this.state.loaded ? (
+                <TestPage {...this.props} />
+            ) : (
+                <noscript />
+            )
         }
     }
 
@@ -133,13 +147,18 @@ describe('PageLifecycleProvider', () => {
                                         {props.location.pathname === '/' && (
                                             <PageAdditionalProps
                                                 pageProperties={{
-                                                    pageExtra: 'Some extra page data',
+                                                    pageExtra:
+                                                        'Some extra page data',
                                                 }}
                                             />
                                         )}
                                         <testComponents.TestPage
                                             path={props.location.pathname}
-                                            extraProps={extraPropsLookup[props.location.pathname]}
+                                            extraProps={
+                                                extraPropsLookup[
+                                                    props.location.pathname
+                                                ]
+                                            }
                                         />
                                     </div>
                                 )
@@ -218,7 +237,9 @@ describe('PageLifecycleProvider', () => {
             <MemoryRouter initialEntries={['/']} initialIndex={0}>
                 <PageLifecycleProvider
                     onEvent={event => pageEvents.push(event)}
-                    render={<Page page={<testComponents.FakeLazyLoad path="/" />} />}
+                    render={
+                        <Page page={<testComponents.FakeLazyLoad path="/" />} />
+                    }
                 />
             </MemoryRouter>,
         )
@@ -270,7 +291,11 @@ describe('PageLifecycleProvider', () => {
                         <Route
                             render={props => {
                                 history = props.history
-                                return <testComponents.TestPage path={props.location.pathname} />
+                                return (
+                                    <testComponents.TestPage
+                                        path={props.location.pathname}
+                                    />
+                                )
                             }}
                         />
                     }

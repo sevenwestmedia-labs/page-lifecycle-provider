@@ -1,5 +1,5 @@
-import * as React from 'react'
-import * as H from 'history'
+import React from 'react'
+import H from 'history'
 import { withRouter, RouteComponentProps } from 'react-router'
 import { PageLifecycle, PageLifecycleContext } from './PageLifecycle'
 import { LoadingStates } from './withPageLifecycle'
@@ -19,7 +19,8 @@ export interface PageLoadStarted extends PageLifecycleEvent<Properties> {
     type: 'page-load-started'
 }
 
-export interface PageLoadFailed extends PageLifecycleEvent<Properties & { error: string }> {
+export interface PageLoadFailed
+    extends PageLifecycleEvent<Properties & { error: string }> {
     type: 'page-load-failed'
 }
 
@@ -40,12 +41,17 @@ export interface PageLifecycleProviderRenderProps {
 export interface PageLifecycleProviderProps extends RouteComponentProps<{}> {
     render:
         | React.ReactElement<any>
-        | ((pageProps: PageLifecycleProviderRenderProps) => React.ReactElement<any>)
+        | ((
+              pageProps: PageLifecycleProviderRenderProps,
+          ) => React.ReactElement<any>)
     onEvent: (event: PageEvent) => void
     logger?: Logger
 }
 
-class PageLifecycleProvider extends React.Component<PageLifecycleProviderProps, {}> {
+class PageLifecycleProvider extends React.Component<
+    PageLifecycleProviderProps,
+    {}
+> {
     static displayName = 'PageLifecycleProvider'
     static defaultProps = {
         logger: consoleLogger('error'),
@@ -132,7 +138,8 @@ class PageLifecycleProvider extends React.Component<PageLifecycleProviderProps, 
         // then additional is next.
         // This issue only exists if the same prop name is specified in multiple areas
         Object.keys(props).forEach(
-            key => (props as any)[key] === undefined && delete (props as any)[key],
+            key =>
+                (props as any)[key] === undefined && delete (props as any)[key],
         )
 
         this.currentPageProps = { ...this.currentPageProps, ...props }
@@ -162,7 +169,10 @@ class PageLifecycleProvider extends React.Component<PageLifecycleProviderProps, 
         if (this.props.location.pathname !== nextProps.location.pathname) {
             if (this.props.logger) {
                 this.props.logger.debug(
-                    { oldPath: this.props.location.pathname, newPath: nextProps.location.pathname },
+                    {
+                        oldPath: this.props.location.pathname,
+                        newPath: nextProps.location.pathname,
+                    },
                     'Path changed',
                 )
             }
@@ -178,12 +188,18 @@ class PageLifecycleProvider extends React.Component<PageLifecycleProviderProps, 
 
     beginLoadingData = () => {
         this.loadingDataCount++
-        this.props.logger!.debug({ loadingDataCount: this.loadingDataCount }, 'Begin loading data')
+        this.props.logger!.debug(
+            { loadingDataCount: this.loadingDataCount },
+            'Begin loading data',
+        )
     }
 
     endLoadingData = () => {
         this.loadingDataCount--
-        this.props.logger!.debug({ loadingDataCount: this.loadingDataCount }, 'End loading data')
+        this.props.logger!.debug(
+            { loadingDataCount: this.loadingDataCount },
+            'End loading data',
+        )
 
         if (this.loadingDataCount === 0) {
             this.raisePageLoadCompleteEvent()

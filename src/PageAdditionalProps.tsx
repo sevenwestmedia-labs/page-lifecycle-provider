@@ -1,6 +1,5 @@
-import * as React from 'react'
-import * as PropTypes from 'prop-types'
-import { PageLifecycle, PageLifecycleContext, ensureContext } from './PageLifecycle'
+import React from 'react'
+import { PageLifecycleContext, ensureContext } from './PageLifecycle'
 import { PageLifecycleProps } from './withPageLifecycle'
 
 export interface Props {
@@ -24,11 +23,15 @@ export class PageAdditionalProps extends React.Component<Props, {}> {
     }
 
     componentDidUpdate() {
-        ensureContext(this.context).updatePageProps(this.props.pageProperties || {})
+        ensureContext(this.context).updatePageProps(
+            this.props.pageProperties || {},
+        )
         return true
     }
 
     render() {
-        return this.props.children ? React.Children.only(this.props.children) : null
+        return this.props.children
+            ? React.Children.only(this.props.children)
+            : null
     }
 }
