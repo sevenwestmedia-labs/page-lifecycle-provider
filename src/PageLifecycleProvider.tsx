@@ -59,6 +59,8 @@ export const PageLifecycleProvider: React.FC<PageLifecycleProviderProps> = ({
 }) => {
     // This will work assuming this component updates before children using the same hook
     const location = useLocation()
+    const locationRef = React.useRef(location)
+    locationRef.current = location
     const previousLocation = usePrevious(location)
     // This needs to be outside of React's lifecycle so it's immediately consistent
     const loadingDataCount = React.useRef(0)
@@ -142,7 +144,7 @@ export const PageLifecycleProvider: React.FC<PageLifecycleProviderProps> = ({
                 logger,
                 onEvent,
                 contextValue.currentPageProps,
-                location,
+                locationRef.current,
             )
         }
     }
@@ -209,13 +211,11 @@ function raisePageLoadCompleteEvent(
     currentPageProps: Array<React.MutableRefObject<{}>>,
     location: Location,
 ) {
-    const reducedProps =
-        currentPageProps.length === 0
-            ? undefined
-            : currentPageProps.reduce(
-                  (acc, val) => ({ ...acc, ...val.current }),
-                  {},
-              )
+    const reducedProps = currentPageProps.reduce(
+        (acc, val) => ({ ...acc, ...val.current }),
+        {},
+    )
+
     logger.debug(
         { currentPageProps: reducedProps },
         'Raising page load complete event',
