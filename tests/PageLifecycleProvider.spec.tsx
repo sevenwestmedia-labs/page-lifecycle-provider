@@ -8,15 +8,18 @@ window.requestAnimationFrame = (callback: any) => {
 
 import H from 'history'
 import React from 'react'
+import { act } from 'react-dom/test-utils'
 import Adapter from 'enzyme-adapter-react-16'
 import { MemoryRouter, Route } from 'react-router-dom'
 import { mount, configure } from 'enzyme'
 
 import { PromiseCompletionSource } from 'promise-completion-source'
-import { Page } from '../src/Page'
-import { PageEvent, PageLifecycleProvider } from '../src/PageLifecycleProvider'
-import { PageAdditionalProps } from '../src/PageAdditionalProps'
-import { PageLifecycleContext, ensureContext } from '../src/PageLifecycle'
+import {
+    PageEvent,
+    PageLifecycleProvider,
+    PagePropertiesContext,
+} from '../src/PageLifecycleProvider'
+import { PageProps } from '../src/PageProps'
 
 configure({ adapter: new Adapter() })
 
@@ -26,73 +29,30 @@ interface TestData {
 
 const createTestComponents = () => {
     const promiseCompletionSource = new PromiseCompletionSource<TestData>()
-    class TestPage extends React.Component<
-        { path: string; extraProps?: object },
-        {}
-    > {
-        loadTriggered = false
+    let loadTriggered = false
+    const TestPage: React.FC<{ extraProps?: object }> = ({ extraProps }) => {
+        return (
+            <PageProps pageProperties={extraProps}>
+                {pageProps => {
+                    // This emulates a component under the page starting to load data
+                    // then completing once the promise completion source completes
+                    if (!loadTriggered) {
+                        pageProps.beginLoadingData()
 
-        render() {
-            return (
-                <Page
-                    pageProperties={this.props.extraProps}
-                    page={pageProps => {
-                        // This emulates a component under the page starting to load data
-                        // then completing once the promise completion source completes
-                        if (!this.loadTriggered) {
-                            pageProps.beginLoadingData()
-                            this.loadTriggered = true
-                            promiseCompletionSource.promise.then(() =>
-                                pageProps.endLoadingData(),
-                            )
-                        }
-                        return (
-                            <div>
-                                Page location:{' '}
-                                {pageProps.currentPageLocation.pathname}
-                                Page state: {pageProps.currentPageState}
-                            </div>
+                        loadTriggered = true
+                        promiseCompletionSource.promise.then(() =>
+                            pageProps.endLoadingData(),
                         )
-                    }}
-                />
-            )
-        }
-    }
+                    }
 
-    // tslint:disable-next-line:max-classes-per-file
-    class FakeLazyLoad extends React.Component<
-        { path: string },
-        { loaded: boolean }
-    > {
-        state = { loaded: false }
-        static contextType = PageLifecycleContext
-        context!: React.ContextType<typeof PageLifecycleContext>
-
-        componentDidMount() {
-            ensureContext(this.context).beginLoadingData()
-            // When we mount, pretend we are starting to load the test page
-            setTimeout(() => {
-                this.setState(
-                    { loaded: true },
-                    // Only end load data after state change has been applied
-                    // Because this could trigger more loading of data
-                    ensureContext(this.context).endLoadingData,
-                )
-            })
-        }
-
-        render() {
-            return this.state.loaded ? (
-                <TestPage {...this.props} />
-            ) : (
-                <noscript />
-            )
-        }
+                    return null
+                }}
+            </PageProps>
+        )
     }
 
     return {
         promiseCompletionSource,
-        FakeLazyLoad,
         TestPage,
     }
 }
@@ -106,12 +66,13 @@ describe('PageLifecycleProvider', () => {
             <MemoryRouter initialEntries={['/']} initialIndex={0}>
                 <PageLifecycleProvider
                     onEvent={event => pageEvents.push(event)}
-                    render={<testComponents.TestPage path="/" />}
-                />
+                >
+                    <testComponents.TestPage />
+                </PageLifecycleProvider>
             </MemoryRouter>,
         )
 
-        const testPage = wrapper.find(testComponents.TestPage)
+        wrapper.find(testComponents.TestPage)
 
         expect(
             pageEvents.map(e => {
@@ -122,7 +83,6 @@ describe('PageLifecycleProvider', () => {
                 return e
             }),
         ).toMatchSnapshot()
-        expect(testPage.debug()).toMatchSnapshot()
     })
 
     it('can pass extra data to pages', async () => {
@@ -138,33 +98,32 @@ describe('PageLifecycleProvider', () => {
             <MemoryRouter initialEntries={['/', '/foo']} initialIndex={0}>
                 <PageLifecycleProvider
                     onEvent={event => pageEvents.push(event)}
-                    render={
-                        <Route
-                            render={props => {
-                                history = props.history
-                                return (
-                                    <div>
-                                        {props.location.pathname === '/' && (
-                                            <PageAdditionalProps
-                                                pageProperties={{
-                                                    pageExtra:
-                                                        'Some extra page data',
-                                                }}
-                                            />
-                                        )}
-                                        <testComponents.TestPage
-                                            path={props.location.pathname}
-                                            extraProps={
-                                                extraPropsLookup[
-                                                    props.location.pathname
-                                                ]
-                                            }
+                >
+                    <Route
+                        render={props => {
+                            history = props.history
+                            return (
+                                <div>
+                                    {props.location.pathname === '/' && (
+                                        <PageProps
+                                            pageProperties={{
+                                                pageExtra:
+                                                    'Some extra page data',
+                                            }}
                                         />
-                                    </div>
-                                )
-                            }}
-                        />
-                    }
+                                    )}
+                                    <testComponents.TestPage
+                                        extraProps={
+                                            extraPropsLookup[
+                                                props.location.pathname
+                                            ]
+                                        }
+                                    />
+                                </div>
+                            )
+                        }}
+                    />
+                </PageLifecycleProvider>
                 />
             </MemoryRouter>,
         )
@@ -173,16 +132,20 @@ describe('PageLifecycleProvider', () => {
             throw new Error('History not defined')
         }
 
-        testComponents.promiseCompletionSource.resolve({ bar: 'test' })
+        act(() => {
+            testComponents.promiseCompletionSource.resolve({ bar: 'test' })
+        })
         await new Promise(resolve => setTimeout(() => resolve()))
         testComponents.promiseCompletionSource = new PromiseCompletionSource()
 
-        history.push('/foo')
+        act(() => {
+            history!.push('/foo')
 
-        testComponents.promiseCompletionSource.resolve({ bar: 'page2' })
+            testComponents.promiseCompletionSource.resolve({ bar: 'page2' })
+        })
         await new Promise(resolve => setTimeout(() => resolve()))
 
-        const testPage = wrapper.update().find(testComponents.TestPage)
+        wrapper.update().find(testComponents.TestPage)
         expect(
             pageEvents.map(e => {
                 e.timeStamp = 0
@@ -192,7 +155,6 @@ describe('PageLifecycleProvider', () => {
                 return e
             }),
         ).toMatchSnapshot()
-        expect(testPage.debug()).toMatchSnapshot()
     })
 
     it('raises completed event after data loaded and content re-rendered', async () => {
@@ -203,18 +165,22 @@ describe('PageLifecycleProvider', () => {
             <MemoryRouter initialEntries={['/']} initialIndex={0}>
                 <PageLifecycleProvider
                     onEvent={event => pageEvents.push(event)}
-                    render={<testComponents.TestPage path="/" />}
+                >
+                    <testComponents.TestPage />
+                </PageLifecycleProvider>
                 />
             </MemoryRouter>,
         )
 
-        testComponents.promiseCompletionSource.resolve({
-            bar: 'test',
+        act(() => {
+            testComponents.promiseCompletionSource.resolve({
+                bar: 'test',
+            })
         })
 
         expect(pageEvents.length).toBe(1)
         await new Promise(resolve => setTimeout(() => resolve()))
-        const testPage = wrapper.update().find(testComponents.TestPage)
+        wrapper.update().find(testComponents.TestPage)
 
         expect(
             pageEvents.map(e => {
@@ -225,8 +191,6 @@ describe('PageLifecycleProvider', () => {
                 return e
             }),
         ).toMatchSnapshot()
-
-        expect(testPage.debug()).toMatchSnapshot()
     })
 
     it('raises completed event after lazy loaded page has completed load data', async () => {
@@ -237,14 +201,13 @@ describe('PageLifecycleProvider', () => {
             <MemoryRouter initialEntries={['/']} initialIndex={0}>
                 <PageLifecycleProvider
                     onEvent={event => pageEvents.push(event)}
-                    render={
-                        <Page page={<testComponents.FakeLazyLoad path="/" />} />
-                    }
-                />
+                >
+                    <testComponents.TestPage />
+                </PageLifecycleProvider>
             </MemoryRouter>,
         )
 
-        const testPage = wrapper.find(testComponents.TestPage)
+        wrapper.find(testComponents.TestPage)
 
         expect(
             pageEvents.map(e => {
@@ -255,11 +218,13 @@ describe('PageLifecycleProvider', () => {
                 return e
             }),
         ).toMatchSnapshot()
-        expect(testPage.debug()).toMatchSnapshot()
+
         await new Promise(resolve => setTimeout(() => resolve()))
 
-        testComponents.promiseCompletionSource.resolve({
-            bar: 'test',
+        act(() => {
+            testComponents.promiseCompletionSource.resolve({
+                bar: 'test',
+            })
         })
         // We should not have received the completed event yet
         expect(pageEvents.length).toBe(1)
@@ -275,7 +240,6 @@ describe('PageLifecycleProvider', () => {
                 return e
             }),
         ).toMatchSnapshot()
-        expect(testPage.debug()).toMatchSnapshot()
     })
 
     it('raises events when page navigated', async () => {
@@ -287,19 +251,14 @@ describe('PageLifecycleProvider', () => {
             <MemoryRouter initialEntries={['/', '/foo']} initialIndex={0}>
                 <PageLifecycleProvider
                     onEvent={event => pageEvents.push(event)}
-                    render={
-                        <Route
-                            render={props => {
-                                history = props.history
-                                return (
-                                    <testComponents.TestPage
-                                        path={props.location.pathname}
-                                    />
-                                )
-                            }}
-                        />
-                    }
-                />
+                >
+                    <Route
+                        render={props => {
+                            history = props.history
+                            return <testComponents.TestPage />
+                        }}
+                    />
+                </PageLifecycleProvider>
             </MemoryRouter>,
         )
 
@@ -307,15 +266,18 @@ describe('PageLifecycleProvider', () => {
             throw new Error('History not defined')
         }
 
-        testComponents.promiseCompletionSource.resolve({ bar: 'test' })
+        act(() => {
+            testComponents.promiseCompletionSource.resolve({ bar: 'test' })
+        })
         await new Promise(resolve => setTimeout(() => resolve()))
         testComponents.promiseCompletionSource = new PromiseCompletionSource()
 
-        history.push('/foo')
-
-        testComponents.promiseCompletionSource.resolve({ bar: 'page2' })
+        act(() => {
+            history!.push('/foo')
+            testComponents.promiseCompletionSource.resolve({ bar: 'page2' })
+        })
         await new Promise(resolve => setTimeout(() => resolve()))
-        const testPage = wrapper.update().find(testComponents.TestPage)
+        wrapper.update().find(testComponents.TestPage)
         expect(
             pageEvents.map(e => {
                 e.timeStamp = 0
@@ -325,6 +287,5 @@ describe('PageLifecycleProvider', () => {
                 return e
             }),
         ).toMatchSnapshot()
-        expect(testPage.debug()).toMatchSnapshot()
     })
 })

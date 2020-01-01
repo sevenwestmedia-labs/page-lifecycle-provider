@@ -1,0 +1,6 @@
+{
+    "extends": ["wanews"],
+    "rules": {
+        "@typescript-eslint/no-unused-vars": 0
+    }
+}

@@ -1,9 +1,7 @@
 import React from 'react'
-import H from 'history'
-import { withRouter, RouteComponentProps } from 'react-router'
-import { PageLifecycle, PageLifecycleContext } from './PageLifecycle'
-import { LoadingStates } from './withPageLifecycle'
-import { Logger, consoleLogger } from 'typescript-log'
+import H, { Location } from 'history'
+import { Logger, noopLogger } from 'typescript-log'
+import { useLocation } from 'react-router'
 
 export interface PageLifecycleEvent<T> {
     type: string
@@ -35,11 +33,10 @@ export interface PageLifecycleProviderRenderProps {
     beginLoadingData: () => void
     /** Decrements loading count */
     endLoadingData: () => void
-    currentPageLocation: H.Location
 }
 
-export interface PageLifecycleProviderProps extends RouteComponentProps<{}> {
-    render:
+export interface PageLifecycleProviderProps {
+    children:
         | React.ReactElement<any>
         | ((
               pageProps: PageLifecycleProviderRenderProps,
@@ -48,187 +45,189 @@ export interface PageLifecycleProviderProps extends RouteComponentProps<{}> {
     logger?: Logger
 }
 
-class PageLifecycleProvider extends React.Component<
-    PageLifecycleProviderProps,
-    {}
-> {
-    static displayName = 'PageLifecycleProvider'
-    static defaultProps = {
-        logger: consoleLogger('error'),
-    }
+export interface PageProperties extends PageLifecycleProviderRenderProps {
+    currentPageProps: Array<React.MutableRefObject<{}>>
+}
+export const PagePropertiesContext = React.createContext<PageProperties>(
+    undefined as any,
+)
 
-    raiseStartOnRender: boolean = false
-    isRouting: boolean
-    loadingDataCount: number
-    pageLifecycle: PageLifecycle
+export const PageLifecycleProvider: React.FC<PageLifecycleProviderProps> = ({
+    children,
+    onEvent,
+    logger = noopLogger(),
+}) => {
+    // This will work assuming this component updates before children using the same hook
+    const location = useLocation()
+    const previousLocation = usePrevious(location)
+    // This needs to be outside of React's lifecycle so it's immediately consistent
+    const loadingDataCount = React.useRef(0)
+    // This needs to be outside React's lifecycle because we want these props to be immediately
+    // consistent as it can be updated through context, then we raise events using the latest value
+    // If it was stored in React state, it would be out of date
+    const contextValue = React.useMemo<PageProperties>(
+        () => ({
+            currentPageProps: [],
+            beginLoadingData,
+            endLoadingData,
+            currentPageLocation: location,
+        }),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [],
+    )
 
-    currentPageProps: object = {}
+    // Set to true when location changes, set to false again when update is complete
+    const [isRouting, setIsRouting] = React.useState(true)
 
-    constructor(props: PageLifecycleProviderProps) {
-        super(props)
-
-        this.isRouting = true
-        this.loadingDataCount = 0
-        this.pageLifecycle = new PageLifecycle(
-            this.updatePageProps,
-            this.onPageRender,
-            this.beginLoadingData,
-            this.endLoadingData,
-            'loading',
-            this.props.location,
-            this.props.logger!,
-        )
-    }
-
-    componentWillMount() {
-        this.raisePageLoadStartEvent()
-    }
-
-    stateChanged = () => {
-        const isLoading = this.isRouting || this.loadingDataCount > 0
-        const currentPageState: LoadingStates = isLoading ? 'loading' : 'loaded'
-        const newState = {
-            currentPageState,
-            currentPageLocation: this.props.location,
-        }
-
-        this.props.logger!.debug(newState, 'State changed')
-        this.pageLifecycle.pageStateChanged(newState)
-    }
-
-    raisePageLoadStartEvent = () => {
-        this.props.logger!.debug({}, 'Rasing start load event')
-
-        this.stateChanged()
-        this.props.onEvent({
-            type: 'page-load-started',
-            originator: 'PageEvents',
-            payload: {
-                ...this.currentPageProps,
-                location: this.props.location,
-            },
-            timeStamp: new Date().getTime(),
-        })
-    }
-
-    raisePageLoadCompleteEvent = () => {
-        this.props.logger!.debug(
-            { currentPageProps: this.currentPageProps },
-            'Raising page load complete event',
-        )
-
-        this.isRouting = false
-        this.stateChanged()
-        this.props.onEvent({
-            type: 'page-load-complete',
-            originator: 'PageEvents',
-            payload: {
-                ...this.currentPageProps,
-                location: this.props.location,
-            },
-            timeStamp: new Date().getTime(),
-        })
-    }
-
-    updatePageProps = (props: object) => {
-        const existingProps = this.currentPageProps
-        // Ensure we don't clear props which are already specified
-        // This behavior is still not deterministic, possible solution is to
-        // maintain the order we got the props. Or Page always is least important,
-        // then additional is next.
-        // This issue only exists if the same prop name is specified in multiple areas
-        Object.keys(props).forEach(
-            key =>
-                (props as any)[key] === undefined && delete (props as any)[key],
-        )
-
-        this.currentPageProps = { ...this.currentPageProps, ...props }
-
-        this.props.logger!.debug(
-            { currentPageProps: this.currentPageProps, existingProps, props },
-            'Updating page props',
-        )
-    }
-
-    onPageRender = () => {
-        if (this.raiseStartOnRender) {
-            // We need to raise start after the page has been rendered
-            // so we get the correct page props
-            this.raisePageLoadStartEvent()
-            this.raiseStartOnRender = false
-        }
-        // We started routing, but no loading data events have fired
-        if (this.isRouting && this.loadingDataCount === 0) {
-            this.isRouting = false
-            this.raisePageLoadCompleteEvent()
-        }
-    }
-
-    componentWillReceiveProps(nextProps: PageLifecycleProviderProps) {
+    // While routing our state may be inconsistent
+    if (previousLocation && !isRouting) {
         // We only care about pathname, not any of the other location info
-        if (this.props.location.pathname !== nextProps.location.pathname) {
-            if (this.props.logger) {
-                this.props.logger.debug(
+        if (previousLocation !== location) {
+            if (logger) {
+                logger.debug(
                     {
-                        oldPath: this.props.location.pathname,
-                        newPath: nextProps.location.pathname,
+                        oldPath: previousLocation.pathname,
+                        newPath: location.pathname,
                     },
                     'Path changed',
                 )
             }
 
-            this.isRouting = true
-            this.raiseStartOnRender = true
-            // We should clear the current page props at this point because the re-render
-            // has not happened and we should start collecting again
-            this.currentPageProps = {}
-            this.pageLifecycle.routeChanged(nextProps.location)
+            setIsRouting(true)
         }
     }
 
-    beginLoadingData = () => {
-        this.loadingDataCount++
-        this.props.logger!.debug(
-            { loadingDataCount: this.loadingDataCount },
+    React.useEffect(() => {
+        if (!isRouting) {
+            return
+        }
+
+        raisePageLoadStartEvent(
+            logger,
+            onEvent,
+            contextValue.currentPageProps,
+            location,
+        )
+        // No data load triggered, also raise complete event
+        if (loadingDataCount.current === 0) {
+            raisePageLoadCompleteEvent(
+                logger,
+                onEvent,
+                contextValue.currentPageProps,
+                location,
+            )
+        }
+
+        setIsRouting(false)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isRouting])
+
+    function beginLoadingData() {
+        loadingDataCount.current++
+        logger.debug(
+            { loadingDataCount: loadingDataCount.current },
             'Begin loading data',
         )
     }
 
-    endLoadingData = () => {
-        this.loadingDataCount--
-        this.props.logger!.debug(
-            { loadingDataCount: this.loadingDataCount },
+    function endLoadingData() {
+        loadingDataCount.current--
+        logger.debug(
+            { loadingDataCount: loadingDataCount.current },
             'End loading data',
         )
 
-        if (this.loadingDataCount === 0) {
-            this.raisePageLoadCompleteEvent()
-        }
-    }
-
-    render() {
-        if (typeof this.props.render === 'function') {
-            return (
-                <PageLifecycleContext.Provider value={this.pageLifecycle}>
-                    {this.props.render({
-                        beginLoadingData: this.beginLoadingData,
-                        endLoadingData: this.endLoadingData,
-                        currentPageLocation: this.props.location,
-                    })}
-                </PageLifecycleContext.Provider>
+        if (loadingDataCount.current === 0) {
+            raisePageLoadCompleteEvent(
+                logger,
+                onEvent,
+                contextValue.currentPageProps,
+                location,
             )
         }
+    }
 
+    if (typeof children === 'function') {
         return (
-            <PageLifecycleContext.Provider value={this.pageLifecycle}>
-                {this.props.render}
-            </PageLifecycleContext.Provider>
+            <PagePropertiesContext.Provider value={contextValue}>
+                {children({
+                    beginLoadingData,
+                    endLoadingData,
+                })}
+            </PagePropertiesContext.Provider>
         )
     }
+
+    return (
+        <PagePropertiesContext.Provider value={contextValue}>
+            {React.Children.only(children)}
+        </PagePropertiesContext.Provider>
+    )
 }
 
-const PageLifecycleProviderWithRouter = withRouter<PageLifecycleProviderProps>(
-    PageLifecycleProvider,
-)
+PageLifecycleProvider.displayName = 'PageLifecycleProvider'
 
-export { PageLifecycleProviderWithRouter as PageLifecycleProvider }
+function usePrevious<T>(value: T) {
+    // The ref object is a generic container whose current property is mutable ...
+    // ... and can hold any value, similar to an instance property on a class
+    const ref = React.useRef<T>()
+
+    // Store current value in ref
+    React.useEffect(() => {
+        ref.current = value
+    }, [value]) // Only re-run if value changes
+
+    // Return previous value (happens before update in useEffect above)
+    return ref.current
+}
+
+function raisePageLoadStartEvent(
+    logger: Logger,
+    onEvent: (event: PageEvent) => void,
+    currentPageProps: Array<React.MutableRefObject<{}>>,
+    location: Location,
+) {
+    logger.debug({}, 'Rasing start load event')
+
+    onEvent({
+        type: 'page-load-started',
+        originator: 'PageEvents',
+        payload: {
+            ...currentPageProps.reduce(
+                (acc, val) => ({ ...acc, ...val.current }),
+                {},
+            ),
+            location,
+        },
+        timeStamp: new Date().getTime(),
+    })
+}
+
+function raisePageLoadCompleteEvent(
+    logger: Logger,
+    onEvent: (event: PageEvent) => void,
+    currentPageProps: Array<React.MutableRefObject<{}>>,
+    location: Location,
+) {
+    const reducedProps =
+        currentPageProps.length === 0
+            ? undefined
+            : currentPageProps.reduce(
+                  (acc, val) => ({ ...acc, ...val.current }),
+                  {},
+              )
+    logger.debug(
+        { currentPageProps: reducedProps },
+        'Raising page load complete event',
+    )
+
+    onEvent({
+        type: 'page-load-complete',
+        originator: 'PageEvents',
+        payload: {
+            ...reducedProps,
+            location,
+        },
+        timeStamp: new Date().getTime(),
+    })
+}

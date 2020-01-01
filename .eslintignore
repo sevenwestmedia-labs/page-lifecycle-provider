@@ -1,0 +1,7 @@
+dist
+src/component-library/__App/component-rendering/TypeSafetyTestFixtures/
+tools-js
+src/thewest/tools
+src/thewest/tools-js
+src/thewest/scripts
+src/**/*.js

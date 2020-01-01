@@ -5,6 +5,7 @@ Array [
   Object {
     "originator": "PageEvents",
     "payload": Object {
+      "home": "isHome",
       "location": Object {
         "hash": "",
         "key": "...",
@@ -12,6 +13,7 @@ Array [
         "search": "",
         "state": undefined,
       },
+      "pageExtra": "Some extra page data",
     },
     "timeStamp": 0,
     "type": "page-load-started",
@@ -65,21 +67,6 @@ Array [
 ]
 `;
 
-exports[`PageLifecycleProvider can pass extra data to pages 2`] = `
-"<TestPage path=\\"/foo\\" extraProps={{...}}>
-  <withPageLifecycleProps(Page) pageProperties={{...}} page={[Function: page]}>
-    <Page pageProperties={{...}} page={[Function: page]} currentPageState=\\"loaded\\" currentPageLocation={{...}} beginLoadingData={[Function]} endLoadingData={[Function]}>
-      <div>
-        Page location: 
-        /foo
-        Page state: 
-        loaded
-      </div>
-    </Page>
-  </withPageLifecycleProps(Page)>
-</TestPage>"
-`;
-
 exports[`PageLifecycleProvider raises completed event after data loaded and content re-rendered 1`] = `
 Array [
   Object {
@@ -113,21 +100,6 @@ Array [
 ]
 `;
 
-exports[`PageLifecycleProvider raises completed event after data loaded and content re-rendered 2`] = `
-"<TestPage path=\\"/\\">
-  <withPageLifecycleProps(Page) pageProperties={[undefined]} page={[Function: page]}>
-    <Page pageProperties={[undefined]} page={[Function: page]} currentPageState=\\"loaded\\" currentPageLocation={{...}} beginLoadingData={[Function]} endLoadingData={[Function]}>
-      <div>
-        Page location: 
-        /
-        Page state: 
-        loaded
-      </div>
-    </Page>
-  </withPageLifecycleProps(Page)>
-</TestPage>"
-`;
-
 exports[`PageLifecycleProvider raises completed event after lazy loaded page has completed load data 1`] = `
 Array [
   Object {
@@ -147,9 +119,7 @@ Array [
 ]
 `;
 
-exports[`PageLifecycleProvider raises completed event after lazy loaded page has completed load data 2`] = `""`;
-
-exports[`PageLifecycleProvider raises completed event after lazy loaded page has completed load data 3`] = `
+exports[`PageLifecycleProvider raises completed event after lazy loaded page has completed load data 2`] = `
 Array [
   Object {
     "originator": "PageEvents",
@@ -181,8 +151,6 @@ Array [
   },
 ]
 `;
-
-exports[`PageLifecycleProvider raises completed event after lazy loaded page has completed load data 4`] = `""`;
 
 exports[`PageLifecycleProvider raises events when page navigated 1`] = `
 Array [
@@ -245,21 +213,6 @@ Array [
 ]
 `;
 
-exports[`PageLifecycleProvider raises events when page navigated 2`] = `
-"<TestPage path=\\"/foo\\">
-  <withPageLifecycleProps(Page) pageProperties={[undefined]} page={[Function: page]}>
-    <Page pageProperties={[undefined]} page={[Function: page]} currentPageState=\\"loaded\\" currentPageLocation={{...}} beginLoadingData={[Function]} endLoadingData={[Function]}>
-      <div>
-        Page location: 
-        /foo
-        Page state: 
-        loaded
-      </div>
-    </Page>
-  </withPageLifecycleProps(Page)>
-</TestPage>"
-`;
-
 exports[`PageLifecycleProvider raises loading event after render 1`] = `
 Array [
   Object {
@@ -277,19 +230,4 @@ Array [
     "type": "page-load-started",
   },
 ]
-`;
-
-exports[`PageLifecycleProvider raises loading event after render 2`] = `
-"<TestPage path=\\"/\\">
-  <withPageLifecycleProps(Page) pageProperties={[undefined]} page={[Function: page]}>
-    <Page pageProperties={[undefined]} page={[Function: page]} currentPageState=\\"loading\\" currentPageLocation={{...}} beginLoadingData={[Function]} endLoadingData={[Function]}>
-      <div>
-        Page location: 
-        /
-        Page state: 
-        loading
-      </div>
-    </Page>
-  </withPageLifecycleProps(Page)>
-</TestPage>"
 `;
