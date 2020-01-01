@@ -4,3 +4,4 @@ node_modules
 **/*.d.ts
 .DS_Store
 *.tgz
+!jest.config.js
