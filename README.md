@@ -1,20 +1,14 @@
 # Page LifeCycle Provider
-The page lifecycle provider introduces a concept of page lifecycles to route changes. The useful scenario is to raise an event when navigations happen (easy using react-router already), then raise another event once all the data has been loaded for that route (much harder).
 
-**Note** A tracked route is determined by the *pathname* in React Router, query string params and #'s do not trigger lifecycle updates
-
-## Constraints
-We cannot use statics/globals, this has to work on the server and requests must be isolated. This constraint is important because the page lifecycle provider must be usable during server side rendering.
-
-Because we need to know when a component is fully rendered (so we know when to decide if the page is going to load data or not) all pages need to be wrapped in a `<Page>` component which allows us to raise the events with confidence.
+The page lifecycle provider introduces a concept of page lifecycles to route changes. The useful scenario is to raise an event when navigations happen (easy using react-router already), then raise another event once all the data has been loaded for that route (harder).
 
 ## Usage
-PageLifecycleProvider has two components, the `PageLifecycleProvider` and the `Page`. The React-Router Router must be above it.
 
-``` ts
+Render `PageLifecycleProvider` between React-Router Router and the routes of your application.
+
+```ts
 const App: React.SFC<{}> = () => (
     <BrowserRouter>
-        {/* PageLifecycleProvider relies on withRouter() from react-router */}
         <PageLifecycleProvider onEvent={(event) => { console.log(event) }}
             <Main />
         </PageLifecycleProvider>
@@ -22,39 +16,80 @@ const App: React.SFC<{}> = () => (
 )
 ```
 
-Then every route needs to be wrapped in a `Page`, for example:
+`onEvent` will then raise page-load-started and page-load-complete events.
 
-``` ts
-const Route1: React.SFC<{}> = () => (
-    <Page
-        render={<Route1Component />}
-    />
-)
-const Route2: React.SFC<{}> = () => (
-    <Page
-        render={<Route2Component />}
-    />
-)
+## Data Loading
 
-<Route path='/route1' component={Route1}/>
-<Route path='/route2' component={Route2}/>
-<Route
-    render={(props) => {
-        <Page
-            render={(
-                <YourPage path={props.location.pathname} />
-            )}
-        />
-    }}
-/>
+Add `loading` and `loaded` props to your component which loads data
+
+```ts
+const ComponentWhichLoadsData = () => {
+    const pageProps = React.useContext(PagePropertiesContext)
+
+    const [data, setData] = React.useState()
+
+    React.useEffect(() => {
+        pageProps.beginLoadingData()
+        getData().then(loadedData => {
+            setData(loadedData)
+            pageProps.endLoadingData()
+        })
+    })
+
+    return data ? <RenderData data={data}> : 'Loading...'
+}
 ```
+
+The `PageLifecycleProvider` also can be used instead of the context if you have a way to globally know when data is being loaded.
+
+```ts
+const App = () => (
+    <BrowserRouter>
+        <PageLifecycleProvider>
+            {({ beginLoadingData, endLoadingData }) => (
+                <DataLoader
+                    onBeginLoadData={beginLoadingData}
+                    onEndLoadData={endLoadingData}
+                >
+                    <Main />
+                </DataLoader>
+            )}
+        </PageLifecycleProvider>
+    </BrowserRouter>
+)
+```
+
+## Adding properties to the payload
+
+Often you want extra data in your events, you can do this with the `PageProps` component
+
+```ts
+const ComponentWhichLoadsData = () => {
+    const pageProps = React.useContext(PagePropertiesContext)
+
+    const [data, setData] = React.useState()
+
+    React.useEffect(() => {
+        pageProps.beginLoadingData()
+        getData().then(loadedData => {
+            setData(loadedData)
+            pageProps.endLoadingData()
+        })
+    })
+
+    return data ? <PageProps pageProperties={{ extra: 'value' }}><RenderData data={data}></PageProps> : 'Loading...'
+}
+```
+
+Now the events will have `{ payload: { extra: 'value' }}`. Multiple page props will be merged together.
 
 ## API
 
 ### PageEvents
+
 Page events are:
 
-``` ts
+```ts
 export interface PageLoadStarted {
     type: 'page-load-started'
     timeStamp: number
