@@ -64,6 +64,9 @@ export const PageLifecycleProvider: React.FC<PageLifecycleProviderProps> = ({
     const previousLocation = usePrevious(location)
     // This needs to be outside of React's lifecycle so it's immediately consistent
     const loadingDataCount = React.useRef(0)
+    // Set to true when location changes, set to false again when update is complete
+    const isRouting = React.useRef(true)
+
     // This needs to be outside React's lifecycle because we want these props to be immediately
     // consistent as it can be updated through context, then we raise events using the latest value
     // If it was stored in React state, it would be out of date
@@ -78,11 +81,8 @@ export const PageLifecycleProvider: React.FC<PageLifecycleProviderProps> = ({
         [],
     )
 
-    // Set to true when location changes, set to false again when update is complete
-    const [isRouting, setIsRouting] = React.useState(true)
-
     // While routing our state may be inconsistent
-    if (previousLocation && !isRouting) {
+    if (previousLocation && !isRouting.current) {
         // We only care about pathname, not any of the other location info
         if (previousLocation !== location) {
             if (logger) {
@@ -95,12 +95,12 @@ export const PageLifecycleProvider: React.FC<PageLifecycleProviderProps> = ({
                 )
             }
 
-            setIsRouting(true)
+            isRouting.current = true
         }
     }
 
     React.useEffect(() => {
-        if (!isRouting) {
+        if (!isRouting.current) {
             return
         }
 
@@ -118,11 +118,11 @@ export const PageLifecycleProvider: React.FC<PageLifecycleProviderProps> = ({
                 contextValue.currentPageProps,
                 location,
             )
+            isRouting.current = false
         }
 
-        setIsRouting(false)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isRouting])
+    }, [location, isRouting.current])
 
     function beginLoadingData() {
         loadingDataCount.current++
@@ -139,13 +139,15 @@ export const PageLifecycleProvider: React.FC<PageLifecycleProviderProps> = ({
             'End loading data',
         )
 
-        if (loadingDataCount.current === 0) {
+        // If pages load data after the page has transitioned to complete, just ignore it
+        if (loadingDataCount.current === 0 && isRouting.current) {
             raisePageLoadCompleteEvent(
                 logger,
                 onEvent,
                 contextValue.currentPageProps,
                 locationRef.current,
             )
+            isRouting.current = false
         }
     }
 
