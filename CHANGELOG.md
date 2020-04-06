@@ -1,5 +1,11 @@
 # page-lifecycle-provider
 
+## 1.1.0
+
+### Minor Changes
+
+-   aedcfbe: Fixed second page-load-complete if the page loads some more data after initial load
+
 ## 1.0.1
 
 ### Patch Changes
