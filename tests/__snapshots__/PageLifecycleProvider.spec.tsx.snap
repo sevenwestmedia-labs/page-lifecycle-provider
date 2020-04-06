@@ -1,5 +1,52 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`PageLifecycleProvider Does not raise events twice for a single route 1`] = `
+Array [
+  Object {
+    "originator": "PageEvents",
+    "payload": Object {
+      "location": Object {
+        "hash": "",
+        "key": "...",
+        "pathname": "/",
+        "search": "",
+        "state": undefined,
+      },
+    },
+    "timeStamp": 0,
+    "type": "page-load-started",
+  },
+  Object {
+    "originator": "PageEvents",
+    "payload": Object {
+      "location": Object {
+        "hash": "",
+        "key": "...",
+        "pathname": "/",
+        "search": "",
+        "state": undefined,
+      },
+    },
+    "timeStamp": 0,
+    "type": "page-load-complete",
+  },
+  Object {
+    "originator": "PageEvents",
+    "payload": Object {
+      "location": Object {
+        "hash": "",
+        "key": "...",
+        "pathname": "/",
+        "search": "",
+        "state": undefined,
+      },
+    },
+    "timeStamp": 0,
+    "type": "page-load-complete",
+  },
+]
+`;
+
 exports[`PageLifecycleProvider can pass extra data to pages 1`] = `
 Array [
   Object {
