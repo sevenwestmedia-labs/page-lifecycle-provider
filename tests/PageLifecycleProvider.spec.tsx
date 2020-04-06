@@ -288,4 +288,65 @@ describe('PageLifecycleProvider', () => {
             }),
         ).toMatchSnapshot()
     })
+
+    it('Does not raise events twice for a single route', async () => {
+        const testComponents = createTestComponents()
+        let history: H.History | undefined
+        const pageEvents: PageEvent[] = []
+        let triggerDataLoad: () => void | undefined
+        let triggerDataLoadComplete: () => void | undefined
+
+        const wrapper = mount(
+            <MemoryRouter initialEntries={['/', '/foo']} initialIndex={0}>
+                <PageLifecycleProvider
+                    onEvent={event => pageEvents.push(event)}
+                >
+                    <Route
+                        render={props => {
+                            history = props.history
+                            return (
+                                <div>
+                                    <testComponents.TestPage />
+                                    <PageProps>
+                                        {pageProps => {
+                                            triggerDataLoad =
+                                                pageProps.beginLoadingData
+                                            triggerDataLoadComplete =
+                                                pageProps.endLoadingData
+
+                                            return null
+                                        }}
+                                    </PageProps>
+                                </div>
+                            )
+                        }}
+                    />
+                </PageLifecycleProvider>
+            </MemoryRouter>,
+        )
+
+        if (!history) {
+            throw new Error('History not defined')
+        }
+
+        act(() => {
+            testComponents.promiseCompletionSource.resolve({ bar: 'test' })
+        })
+        await new Promise(resolve => setTimeout(() => resolve()))
+
+        act(() => {
+            triggerDataLoad!()
+            triggerDataLoadComplete!()
+        })
+
+        expect(
+            pageEvents.map(e => {
+                e.timeStamp = 0
+                if (e.payload && e.payload.location) {
+                    e.payload.location.key = '...'
+                }
+                return e
+            }),
+        ).toMatchSnapshot()
+    })
 })
