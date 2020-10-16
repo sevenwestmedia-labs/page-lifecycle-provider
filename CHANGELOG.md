@@ -1,5 +1,11 @@
 # page-lifecycle-provider
 
+## 1.1.2
+
+### Patch Changes
+
+-   b37810f: Fix page-load-started not firing when page completes quickly (actually fixing it this time)
+
 ## 1.1.1
 
 ### Patch Changes
