@@ -1,5 +1,11 @@
 # page-lifecycle-provider
 
+## 1.1.1
+
+### Patch Changes
+
+-   021dc74: Fix page-load-started not firing when page completes quickly
+
 ## 1.1.0
 
 ### Minor Changes
