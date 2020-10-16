@@ -66,7 +66,6 @@ export const PageLifecycleProvider: React.FC<PageLifecycleProviderProps> = ({
     const loadingDataCount = React.useRef(0)
     // Set to true when location changes, set to false again when update is complete
     const isRouting = React.useRef(true)
-    const started = React.useRef(false)
 
     // This needs to be outside React's lifecycle because we want these props to be immediately
     // consistent as it can be updated through context, then we raise events using the latest value
@@ -105,21 +104,19 @@ export const PageLifecycleProvider: React.FC<PageLifecycleProviderProps> = ({
             return
         }
 
-        raisePageLoadStartEvent(
-            logger,
-            onEvent,
-            contextValue.currentPageProps,
-            location,
-            started,
-        )
-        // No data load triggered, also raise complete event
+        // No data load triggered
         if (loadingDataCount.current === 0) {
+            raisePageLoadStartEvent(
+                logger,
+                onEvent,
+                contextValue.currentPageProps,
+                location,
+            )
             raisePageLoadCompleteEvent(
                 logger,
                 onEvent,
                 contextValue.currentPageProps,
                 location,
-                started,
             )
             isRouting.current = false
         }
@@ -128,6 +125,14 @@ export const PageLifecycleProvider: React.FC<PageLifecycleProviderProps> = ({
     }, [location, isRouting.current])
 
     function beginLoadingData() {
+        if (loadingDataCount.current === 0 && isRouting.current) {
+            raisePageLoadStartEvent(
+                logger,
+                onEvent,
+                contextValue.currentPageProps,
+                location,
+            )
+        }
         loadingDataCount.current++
         logger.debug(
             { loadingDataCount: loadingDataCount.current },
@@ -144,23 +149,14 @@ export const PageLifecycleProvider: React.FC<PageLifecycleProviderProps> = ({
 
         // If pages load data after the page has transitioned to complete, just ignore it
         if (loadingDataCount.current === 0 && isRouting.current) {
-            const raiseComplete = () => {
-                isRouting.current = false
+            isRouting.current = false
 
-                raisePageLoadCompleteEvent(
-                    logger,
-                    onEvent,
-                    contextValue.currentPageProps,
-                    locationRef.current,
-                    started,
-                )
-            }
-            // Defer the complete event if we haven't processed the start event yet
-            if (started.current) {
-                raiseComplete()
-            } else {
-                setTimeout(raiseComplete, 0)
-            }
+            raisePageLoadCompleteEvent(
+                logger,
+                onEvent,
+                contextValue.currentPageProps,
+                locationRef.current,
+            )
         }
     }
 
@@ -203,10 +199,8 @@ function raisePageLoadStartEvent(
     onEvent: (event: PageEvent) => void,
     currentPageProps: Array<React.MutableRefObject<{}>>,
     location: Location,
-    started: React.MutableRefObject<boolean>,
 ) {
     logger.debug({}, 'Rasing start load event')
-    started.current = true
 
     onEvent({
         type: 'page-load-started',
@@ -227,7 +221,6 @@ function raisePageLoadCompleteEvent(
     onEvent: (event: PageEvent) => void,
     currentPageProps: Array<React.MutableRefObject<{}>>,
     location: Location,
-    started: React.MutableRefObject<boolean>,
 ) {
     const reducedProps = currentPageProps.reduce(
         (acc, val) => ({ ...acc, ...val.current }),
@@ -238,7 +231,6 @@ function raisePageLoadCompleteEvent(
         { currentPageProps: reducedProps },
         'Raising page load complete event',
     )
-    started.current = false
 
     onEvent({
         type: 'page-load-complete',
