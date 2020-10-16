@@ -27,22 +27,26 @@ interface TestData {
     bar: string
 }
 
-const createTestComponents = () => {
+const createTestComponents = (asyncCompletion = true) => {
     const promiseCompletionSource = new PromiseCompletionSource<TestData>()
     let loadTriggered = false
     const TestPage: React.FC<{ extraProps?: object }> = ({ extraProps }) => {
         return (
             <PageProps pageProperties={extraProps}>
-                {pageProps => {
+                {(pageProps) => {
                     // This emulates a component under the page starting to load data
                     // then completing once the promise completion source completes
                     if (!loadTriggered) {
                         pageProps.beginLoadingData()
 
                         loadTriggered = true
-                        promiseCompletionSource.promise.then(() =>
-                            pageProps.endLoadingData(),
-                        )
+                        if (asyncCompletion) {
+                            promiseCompletionSource.promise.then(() =>
+                                pageProps.endLoadingData(),
+                            )
+                        } else {
+                            pageProps.endLoadingData()
+                        }
                     }
 
                     return null
@@ -65,7 +69,7 @@ describe('PageLifecycleProvider', () => {
         const wrapper = mount(
             <MemoryRouter initialEntries={['/']} initialIndex={0}>
                 <PageLifecycleProvider
-                    onEvent={event => pageEvents.push(event)}
+                    onEvent={(event) => pageEvents.push(event)}
                 >
                     <testComponents.TestPage />
                 </PageLifecycleProvider>
@@ -75,7 +79,34 @@ describe('PageLifecycleProvider', () => {
         wrapper.find(testComponents.TestPage)
 
         expect(
-            pageEvents.map(e => {
+            pageEvents.map((e) => {
+                e.timeStamp = 0
+                if (e.payload && e.payload.location) {
+                    e.payload.location.key = '...'
+                }
+                return e
+            }),
+        ).toMatchSnapshot()
+    })
+
+    it('raises start event before complete ', () => {
+        const testComponents = createTestComponents(false)
+        const pageEvents: PageEvent[] = []
+
+        const wrapper = mount(
+            <MemoryRouter initialEntries={['/']} initialIndex={0}>
+                <PageLifecycleProvider
+                    onEvent={(event) => pageEvents.push(event)}
+                >
+                    <testComponents.TestPage />
+                </PageLifecycleProvider>
+            </MemoryRouter>,
+        )
+
+        wrapper.find(testComponents.TestPage)
+
+        expect(
+            pageEvents.map((e) => {
                 e.timeStamp = 0
                 if (e.payload && e.payload.location) {
                     e.payload.location.key = '...'
@@ -97,10 +128,10 @@ describe('PageLifecycleProvider', () => {
         const wrapper = mount(
             <MemoryRouter initialEntries={['/', '/foo']} initialIndex={0}>
                 <PageLifecycleProvider
-                    onEvent={event => pageEvents.push(event)}
+                    onEvent={(event) => pageEvents.push(event)}
                 >
                     <Route
-                        render={props => {
+                        render={(props) => {
                             history = props.history
                             return (
                                 <div>
@@ -124,7 +155,6 @@ describe('PageLifecycleProvider', () => {
                         }}
                     />
                 </PageLifecycleProvider>
-                />
             </MemoryRouter>,
         )
 
@@ -135,7 +165,7 @@ describe('PageLifecycleProvider', () => {
         act(() => {
             testComponents.promiseCompletionSource.resolve({ bar: 'test' })
         })
-        await new Promise(resolve => setTimeout(() => resolve()))
+        await new Promise((resolve) => setTimeout(() => resolve()))
         testComponents.promiseCompletionSource = new PromiseCompletionSource()
 
         act(() => {
@@ -143,11 +173,11 @@ describe('PageLifecycleProvider', () => {
 
             testComponents.promiseCompletionSource.resolve({ bar: 'page2' })
         })
-        await new Promise(resolve => setTimeout(() => resolve()))
+        await new Promise((resolve) => setTimeout(() => resolve()))
 
         wrapper.update().find(testComponents.TestPage)
         expect(
-            pageEvents.map(e => {
+            pageEvents.map((e) => {
                 e.timeStamp = 0
                 if (e.payload && e.payload.location) {
                     e.payload.location.key = '...'
@@ -164,11 +194,10 @@ describe('PageLifecycleProvider', () => {
         const wrapper = mount(
             <MemoryRouter initialEntries={['/']} initialIndex={0}>
                 <PageLifecycleProvider
-                    onEvent={event => pageEvents.push(event)}
+                    onEvent={(event) => pageEvents.push(event)}
                 >
                     <testComponents.TestPage />
                 </PageLifecycleProvider>
-                />
             </MemoryRouter>,
         )
 
@@ -179,11 +208,11 @@ describe('PageLifecycleProvider', () => {
         })
 
         expect(pageEvents.length).toBe(1)
-        await new Promise(resolve => setTimeout(() => resolve()))
+        await new Promise((resolve) => setTimeout(() => resolve()))
         wrapper.update().find(testComponents.TestPage)
 
         expect(
-            pageEvents.map(e => {
+            pageEvents.map((e) => {
                 e.timeStamp = 0
                 if (e.payload && e.payload.location) {
                     e.payload.location.key = '...'
@@ -200,7 +229,7 @@ describe('PageLifecycleProvider', () => {
         const wrapper = mount(
             <MemoryRouter initialEntries={['/']} initialIndex={0}>
                 <PageLifecycleProvider
-                    onEvent={event => pageEvents.push(event)}
+                    onEvent={(event) => pageEvents.push(event)}
                 >
                     <testComponents.TestPage />
                 </PageLifecycleProvider>
@@ -210,7 +239,7 @@ describe('PageLifecycleProvider', () => {
         wrapper.find(testComponents.TestPage)
 
         expect(
-            pageEvents.map(e => {
+            pageEvents.map((e) => {
                 e.timeStamp = 0
                 if (e.payload && e.payload.location) {
                     e.payload.location.key = '...'
@@ -219,7 +248,7 @@ describe('PageLifecycleProvider', () => {
             }),
         ).toMatchSnapshot()
 
-        await new Promise(resolve => setTimeout(() => resolve()))
+        await new Promise((resolve) => setTimeout(() => resolve()))
 
         act(() => {
             testComponents.promiseCompletionSource.resolve({
@@ -230,9 +259,9 @@ describe('PageLifecycleProvider', () => {
         expect(pageEvents.length).toBe(1)
 
         // Let the completion propagate
-        await new Promise(resolve => setTimeout(() => resolve()))
+        await new Promise((resolve) => setTimeout(() => resolve()))
         expect(
-            pageEvents.map(e => {
+            pageEvents.map((e) => {
                 e.timeStamp = 0
                 if (e.payload && e.payload.location) {
                     e.payload.location.key = '...'
@@ -250,10 +279,10 @@ describe('PageLifecycleProvider', () => {
         const wrapper = mount(
             <MemoryRouter initialEntries={['/', '/foo']} initialIndex={0}>
                 <PageLifecycleProvider
-                    onEvent={event => pageEvents.push(event)}
+                    onEvent={(event) => pageEvents.push(event)}
                 >
                     <Route
-                        render={props => {
+                        render={(props) => {
                             history = props.history
                             return <testComponents.TestPage />
                         }}
@@ -269,17 +298,17 @@ describe('PageLifecycleProvider', () => {
         act(() => {
             testComponents.promiseCompletionSource.resolve({ bar: 'test' })
         })
-        await new Promise(resolve => setTimeout(() => resolve()))
+        await new Promise((resolve) => setTimeout(() => resolve()))
         testComponents.promiseCompletionSource = new PromiseCompletionSource()
 
         act(() => {
             history!.push('/foo')
             testComponents.promiseCompletionSource.resolve({ bar: 'page2' })
         })
-        await new Promise(resolve => setTimeout(() => resolve()))
+        await new Promise((resolve) => setTimeout(() => resolve()))
         wrapper.update().find(testComponents.TestPage)
         expect(
-            pageEvents.map(e => {
+            pageEvents.map((e) => {
                 e.timeStamp = 0
                 if (e.payload && e.payload.location) {
                     e.payload.location.key = '...'
@@ -299,16 +328,16 @@ describe('PageLifecycleProvider', () => {
         const wrapper = mount(
             <MemoryRouter initialEntries={['/', '/foo']} initialIndex={0}>
                 <PageLifecycleProvider
-                    onEvent={event => pageEvents.push(event)}
+                    onEvent={(event) => pageEvents.push(event)}
                 >
                     <Route
-                        render={props => {
+                        render={(props) => {
                             history = props.history
                             return (
                                 <div>
                                     <testComponents.TestPage />
                                     <PageProps>
-                                        {pageProps => {
+                                        {(pageProps) => {
                                             triggerDataLoad =
                                                 pageProps.beginLoadingData
                                             triggerDataLoadComplete =
@@ -332,7 +361,7 @@ describe('PageLifecycleProvider', () => {
         act(() => {
             testComponents.promiseCompletionSource.resolve({ bar: 'test' })
         })
-        await new Promise(resolve => setTimeout(() => resolve()))
+        await new Promise((resolve) => setTimeout(() => resolve()))
 
         act(() => {
             triggerDataLoad!()
@@ -340,7 +369,7 @@ describe('PageLifecycleProvider', () => {
         })
 
         expect(
-            pageEvents.map(e => {
+            pageEvents.map((e) => {
                 e.timeStamp = 0
                 if (e.payload && e.payload.location) {
                     e.payload.location.key = '...'
